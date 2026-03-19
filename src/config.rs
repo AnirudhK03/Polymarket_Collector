@@ -16,7 +16,7 @@ pub const MARKET_SLUG_PREFIX: &str = "btc-updown-5m-";
 pub const WINDOW_DURATION_SECS: u64 = 300;
 
 /// Delay before fetching price_to_beat after window ends
-pub const BACKFILL_DELAY_SECS: u64 = 5;
+pub const BACKFILL_DELAY_SECS: u64 = 180;
 
 /// Ping interval for Polymarket websocket
 pub const PING_INTERVAL_SECS: u64 = 10;

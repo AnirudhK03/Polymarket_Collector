@@ -18,31 +18,36 @@ pub async fn run() -> Result<()> {
     let mut conn = db::open()?;
     println!("[Collector] Database opened");
 
+    let mut first_run = true;
+
     loop {
-        // Calculate timing
-        let current_window = timing::current_window_ts();
-        let next_window = timing::next_window_ts();
-        let seconds_until_next = timing::seconds_until_window(next_window);
+        let window_ts = timing::current_window_ts();
+        let seconds_into = timing::seconds_into_window();
 
-        println!("\n[Collector] Current window: {}", current_window);
-        println!("[Collector] Next window: {}", next_window);
-        println!("[Collector] Waiting {} seconds...", seconds_until_next);
-
-        // Wait for next window to start
-        if seconds_until_next > 0 {
-            tokio::time::sleep(Duration::from_secs(seconds_until_next as u64)).await;
+        // If we're more than 5 seconds into a window, skip to next
+        if seconds_into > 5 {
+            let next_window = timing::next_window_ts();
+            let wait_secs = timing::seconds_until_window(next_window);
+            println!(
+                "[Collector] Mid-window ({}s in), waiting {}s for window {}",
+                seconds_into, wait_secs, next_window
+            );
+            tokio::time::sleep(Duration::from_secs(wait_secs as u64)).await;
+            tokio::time::sleep(Duration::from_millis(500)).await;
+            continue;
         }
 
-        // Small buffer to ensure window has started
-        tokio::time::sleep(Duration::from_millis(500)).await;
-
-        // Now collect the window
-        let window_ts = timing::current_window_ts();
+        // We're at the start of a window, collect it
         println!("\n[Collector] === Starting window {} ===", window_ts);
 
         // Spawn backfill task for previous window
-        let previous_window = window_ts - 300;
-        tokio::spawn(backfill_price_to_beat(previous_window));
+        if first_run {
+            println!("[Collector] First run, skipping backfill");
+            first_run = false;
+        } else {
+            let previous_window = window_ts - 300;
+            tokio::spawn(backfill_price_to_beat(previous_window));
+        }
 
         // Collect the window
         match collect_window(&mut conn, window_ts).await {
@@ -54,10 +59,12 @@ pub async fn run() -> Result<()> {
             }
             Err(e) => {
                 println!("[Collector] Window {} failed: {}", window_ts, e);
-                // Mark as failed if event was inserted
                 let _ = db::mark_failed(&conn, window_ts);
             }
         }
+
+        // Small delay before checking next window
+        tokio::time::sleep(Duration::from_millis(100)).await;
     }
 }
 
@@ -139,12 +146,11 @@ async fn collect_window(conn: &mut rusqlite::Connection, window_ts: i64) -> Resu
 
 /// Backfill price_to_beat for a previous window
 async fn backfill_price_to_beat(window_ts: i64) {
-    println!("[Backfill] Waiting 5 seconds for window {}...", window_ts);
-    tokio::time::sleep(Duration::from_secs(5)).await;
+    println!("[Backfill] Waiting {}s for window {}...", crate::config::BACKFILL_DELAY_SECS, window_ts);
+    tokio::time::sleep(Duration::from_secs(crate::config::BACKFILL_DELAY_SECS)).await;
 
     match api::fetch_price_to_beat(window_ts).await {
         Ok(Some(price)) => {
-            // Open new connection for this task
             if let Ok(conn) = db::open() {
                 if let Err(e) = db::update_price_to_beat(&conn, window_ts, price) {
                     println!("[Backfill] Failed to update DB: {}", e);
