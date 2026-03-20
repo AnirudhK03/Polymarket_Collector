@@ -168,6 +168,19 @@ def cmd_iv_summary(args):
     print(f"Saved: {out}")
 
 
+def cmd_stats(args):
+    """Print statistical report across all windows."""
+    from analysis.stats import compute_all_stats, print_report
+
+    print("Loading all windows...")
+    t0 = time.time()
+    all_data = load_all(args.db)
+    print(f"Loaded {len(all_data)} windows in {time.time() - t0:.1f}s\n")
+
+    stats = compute_all_stats(all_data)
+    print_report(stats)
+
+
 # -- Argument parser -------------------------------------------------------
 
 
@@ -203,6 +216,9 @@ def main():
     # iv-summary
     subparsers.add_parser("iv-summary", help="IV box plot across all windows")
 
+    # stats
+    subparsers.add_parser("stats", help="Print statistical report across all windows")
+
     args = parser.parse_args()
 
     commands = {
@@ -212,6 +228,7 @@ def main():
         "dashboard": cmd_dashboard,
         "iv-overlay": cmd_iv_overlay,
         "iv-summary": cmd_iv_summary,
+        "stats": cmd_stats,
     }
 
     commands[args.command](args)

@@ -1,6 +1,5 @@
 /target
 *.db
 /output
-analysis/__pycache__
-analysis/viz/__pycache__
+__pycache__/
 *.pyc

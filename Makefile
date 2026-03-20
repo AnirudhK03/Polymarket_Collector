@@ -52,7 +52,10 @@ iv-summary:
 
 # ── Everything ─────────────────────────────────────────────────
 
-all: plot-all dashboard iv-overlay iv-summary
+stats:
+	$(PYTHON) --db $(DB) stats
+
+all: plot-all dashboard iv-overlay iv-summary stats
 	@echo "All outputs generated in ./output/"
 
 # ── Utility ────────────────────────────────────────────────────
