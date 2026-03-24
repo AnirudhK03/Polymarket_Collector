@@ -132,6 +132,10 @@ def get_window_data(window_ts: int, db_path: Path = DEFAULT_DB) -> dict:
 
     price_to_beat = event.iloc[0]["price_to_beat"]
 
+    if price_to_beat is None or pd.isna(price_to_beat):
+        conn.close()
+        raise ValueError(f"Window {window_ts} has no price_to_beat")
+
     # Load both data sources
     trades = load_trades(window_ts, conn)
     btc = load_btc(window_ts, conn)
