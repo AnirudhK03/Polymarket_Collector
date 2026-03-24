@@ -55,7 +55,10 @@ iv-summary:
 stats:
 	$(PYTHON) --db $(DB) stats
 
-all: plot-all dashboard iv-overlay iv-summary stats
+timeseries:
+	$(PYTHON) --db $(DB) timeseries
+
+all: plot-all dashboard iv-overlay iv-summary stats timeseries
 	@echo "All outputs generated in ./output/"
 
 # ── Utility ────────────────────────────────────────────────────

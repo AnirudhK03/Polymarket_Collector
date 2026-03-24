@@ -180,6 +180,17 @@ def cmd_stats(args):
     stats = compute_all_stats(all_data)
     print_report(stats)
 
+def cmd_timeseries(args):
+    """Print time series analysis report."""
+    from analysis.timeseries import compute_all_timeseries, print_report as ts_report
+ 
+    print("Loading all windows...")
+    t0 = time.time()
+    all_data = load_all(args.db)
+    print(f"Loaded {len(all_data)} windows in {time.time() - t0:.1f}s\n")
+ 
+    ts = compute_all_timeseries(all_data)
+    ts_report(ts)
 
 # -- Argument parser -------------------------------------------------------
 
@@ -219,6 +230,9 @@ def main():
     # stats
     subparsers.add_parser("stats", help="Print statistical report across all windows")
 
+    #timeseries
+    subparsers.add_parser("timeseries", help="Time series analysis of BTC dynamics")
+
     args = parser.parse_args()
 
     commands = {
@@ -229,6 +243,7 @@ def main():
         "iv-overlay": cmd_iv_overlay,
         "iv-summary": cmd_iv_summary,
         "stats": cmd_stats,
+        "timeseries": cmd_timeseries,
     }
 
     commands[args.command](args)
